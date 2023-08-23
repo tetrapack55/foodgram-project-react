@@ -14,7 +14,7 @@ CSV_FILE_PATH = os.path.join(os.path.dirname(
 class Command(BaseCommand):
     def handle(self, *args, **options):
         with open(
-           CSV_FILE_PATH, 'r', encoding='UTF-8'
+            CSV_FILE_PATH, 'r', encoding='UTF-8'
         ) as file:
             reader = csv.reader(file)
             for row in reader:
