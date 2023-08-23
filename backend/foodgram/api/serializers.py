@@ -1,8 +1,8 @@
 import base64
-# import webcolors
 
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
@@ -24,18 +24,6 @@ class Base64ImageField(serializers.ImageField):
             data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
 
         return super().to_internal_value(data)
-
-
-# class Hex2NameColor(serializers.Field):
-#     def to_representation(self, value):
-#         return value
-
-#     def to_internal_value(self, data):
-#         try:
-#             data = webcolors.hex_to_name(data)
-#         except ValueError:
-#             raise serializers.ValidationError('Для этого цвета нет имени')
-#         return data
 
 
 class CustomUserSerializer(UserSerializer):
@@ -90,7 +78,6 @@ class SubscriptionSerializer(CustomUserSerializer):
 
 
 class TagSerializer(serializers.ModelSerializer):
-    # color = Hex2NameColor()
 
     class Meta:
         model = Tag
@@ -105,22 +92,22 @@ class IngredientSerializer(serializers.ModelSerializer):
 
 
 class RecipeIngredientSerializer(serializers.ModelSerializer):
-    id = serializers.SerializerMethodField()
-    name = serializers.SerializerMethodField()
-    measurement_unit = serializers.SerializerMethodField()
+    id = serializers.PrimaryKeyRelatedField(
+        queryset=Ingredient.objects.all(),
+        source='ingredient.id'
+    )
+    name = serializers.CharField(
+        source='ingredient.name',
+        read_only=True
+    )
+    measurement_unit = serializers.CharField(
+        source='ingredient.measurement_unit',
+        read_only=True
+    )
 
     class Meta:
         model = RecipeIngredient
         fields = ('id', "name", "measurement_unit", "amount")
-
-    def get_id(self, obj):
-        return obj.ingredient.id
-
-    def get_name(self, obj):
-        return obj.ingredient.name
-
-    def get_measurement_unit(self, obj):
-        return obj.ingredient.measurement_unit
 
 
 class RecipeIngredientCreateUpdateSerializer(serializers.ModelSerializer):
@@ -155,19 +142,15 @@ class RecipeSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request is None or request.user.is_anonymous:
             return False
-        if Favorite.objects.filter(user=request.user,
-                                   recipe__id=obj.id).exists():
-            return True
-        return False
+        return Favorite.objects.filter(user=request.user,
+                                       recipe__id=obj.id).exists()
 
     def get_is_in_shopping_cart(self, obj):
         request = self.context.get('request')
         if request is None or request.user.is_anonymous:
             return False
-        if ShoppingCart.objects.filter(user=request.user,
-                                       recipe__id=obj.id).exists():
-            return True
-        return False
+        return ShoppingCart.objects.filter(user=request.user,
+                                           recipe__id=obj.id).exists()
 
 
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
@@ -205,6 +188,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
                 })
         return data
 
+    @transaction.atomic
     def create(self, validated_data):
         tags = validated_data.pop('tags')
         ingredients = validated_data.pop('ingredients')
@@ -222,6 +206,7 @@ class RecipeCreateUpdateSerializer(serializers.ModelSerializer):
         RecipeIngredient.objects.bulk_create(create_ingredients)
         return recipe
 
+    @transaction.atomic
     def update(self, instance, validated_data):
         tags = validated_data.pop('tags')
         ingredients = validated_data.pop('ingredients')

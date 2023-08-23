@@ -1,5 +1,5 @@
 from django.contrib.auth import get_user_model
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
 
 
@@ -44,6 +44,12 @@ class Ingredient(models.Model):
     class Meta:
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
+        constraints = (
+            models.UniqueConstraint(
+                fields=('name', 'measurement_unit',),
+                name='unique_name_measurement_unit_ingredient',
+            ),
+        )
 
     def __str__(self):
         return self.name
@@ -62,7 +68,10 @@ class RecipeIngredient(models.Model):
     )
     amount = models.IntegerField(
         'Количество ингредиента',
-        validators=(MinValueValidator(1),)
+        validators=(
+            MinValueValidator(1),
+            MaxValueValidator(1000)
+        )
     )
 
     def __str__(self):
@@ -100,7 +109,10 @@ class Recipe(models.Model):
     )
     cooking_time = models.PositiveSmallIntegerField(
         'Время приготовления',
-        validators=(MinValueValidator(1),)
+        validators=(
+            MinValueValidator(1),
+            MaxValueValidator(1000)
+        )
     )
     pub_date = models.DateTimeField(
         'Дата публикации',
