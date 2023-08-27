@@ -106,7 +106,6 @@ jobs:
       - build_and_push_to_docker_hub
       - build_frontend_and_push_to_docker_hub
       - build_gateway_and_push_to_docker_hub
-    if: github.ref == 'refs/heads/main'
     steps:
     - name: Checkout repo
       uses: actions/checkout@v3
@@ -133,7 +132,9 @@ jobs:
           sudo docker compose -f docker-compose.yml up -d
           sudo docker compose -f docker-compose.yml exec backend python manage.py migrate
           sudo docker compose -f docker-compose.yml exec backend python manage.py collectstatic
-          sudo docker compose -f docker-compose.yml exec backend cp -r /app/collected_static/. /backend_static/static/ 
+          sudo docker compose -f docker-compose.yml exec backend cp -r /app/collected_static/. /backend_static/static/
+          sudo docker compose -f docker-compose.yml exec backend python manage.py load_data
+          sudo docker compose -f docker-compose.yml exec backend python manage.py load_tags
   
   send_message:
     runs-on: ubuntu-latest
