@@ -23,7 +23,7 @@ class RecipeAdmin(admin.ModelAdmin):
 
 @admin.register(Tag)
 class TagAdmin(admin.ModelAdmin):
-    list_display = ('name', 'color', 'slug',)
+    list_display = ('id', 'name', 'color', 'slug',)
     search_fields = ('name',)
     empty_value_display = '<< пусто >>'
 

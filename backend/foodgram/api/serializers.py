@@ -35,11 +35,12 @@ class CustomUserSerializer(UserSerializer):
                   "last_name", 'is_subscribed')
 
     def get_is_subscribed(self, obj):
-        user = self.context.get('request').user
-        return (
-            not user.is_anonymous
-            and Subscription.objects.filter(user=user, author=obj).exists()
-        )
+        request = self.context.get('request')
+        if not request or request.user.is_anonymous:
+            return False
+        return Subscription.objects.filter(
+            user=request.user, author=obj
+        ).exists()
 
 
 class CustomUserCreateSerializer(UserCreateSerializer):
@@ -59,17 +60,12 @@ class SubscriptionSerializer(CustomUserSerializer):
         fields = ("email", "id", "username", "first_name", "last_name",
                   "is_subscribed", "recipes", "recipes_count")
 
-    def get_is_subscribed(self, obj):
-        request = self.context.get('request')
-        if request.user.is_authenticated:
-            return Subscription.objects.filter(
-                user=request.user, author=obj).exists()
-        return False
-
     def get_recipes(self, obj):
         request = self.context.get('request')
-        recipes_limit = int(request.query_params.get('recipes_limit'))
-        recipes = obj.recipes.all().order_by('-pub_date')[:recipes_limit]
+        limit = request.query_params.get('recipes_limit')
+        recipes = Recipe.objects.filter(author=obj)
+        if limit:
+            recipes = recipes[:int(limit)]
         serializer = RecipeSerializer(recipes, many=True)
         return serializer.data
 
@@ -81,7 +77,7 @@ class TagSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Tag
-        fields = ('name', 'color', 'slug')
+        fields = ('id', 'name', 'color', 'slug')
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -143,14 +139,14 @@ class RecipeSerializer(serializers.ModelSerializer):
         if request is None or request.user.is_anonymous:
             return False
         return Favorite.objects.filter(user=request.user,
-                                       recipe__id=obj.id).exists()
+                                       recipe=obj).exists()
 
     def get_is_in_shopping_cart(self, obj):
         request = self.context.get('request')
         if request is None or request.user.is_anonymous:
             return False
         return ShoppingCart.objects.filter(user=request.user,
-                                           recipe__id=obj.id).exists()
+                                           recipe=obj).exists()
 
 
 class RecipeCreateUpdateSerializer(serializers.ModelSerializer):

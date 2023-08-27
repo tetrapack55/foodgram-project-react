@@ -5,7 +5,6 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from djoser.views import UserViewSet
 from rest_framework import exceptions, status, viewsets
-from rest_framework.filters import SearchFilter
 from rest_framework.decorators import action
 from rest_framework.permissions import (IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
@@ -15,7 +14,7 @@ from recipes.models import (Favorite, Ingredient, Recipe,
                             RecipeIngredient, Tag, ShoppingCart)
 from users.models import Subscription
 from users.permissions import IsAuthorOrAdminOrReadOnly
-from .filters import RecipeFilter
+from .filters import IngredientFilter, RecipeFilter
 from .pagination import LimitPagination
 from .serializers import (IngredientSerializer,
                           FavoriteOrShoppingCartSerializer,
@@ -28,14 +27,12 @@ User = get_user_model()
 
 
 class CustomUserViewSet(UserViewSet):
+    queryset = User.objects.all()
     permission_classes = (IsAuthenticatedOrReadOnly,)
     pagination_class = LimitPagination
 
-    @action(
-        detail=True,
-        methods=('post', 'delete'),
-        serializer_class=SubscriptionSerializer
-    )
+    @action(detail=True, methods=['post', 'delete'],
+            serializer_class=SubscriptionSerializer)
     def subscribe(self, request, id=None):
         user = self.request.user
         author = get_object_or_404(User, pk=id)
@@ -73,12 +70,9 @@ class CustomUserViewSet(UserViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-    @action(
-        detail=False,
-        methods=('get',),
-        serializer_class=SubscriptionSerializer,
-        permission_classes=(IsAuthenticated,)
-    )
+    @action(detail=False, methods=['get'],
+            serializer_class=SubscriptionSerializer,
+            permission_classes=(IsAuthenticated,))
     def subscriptions(self, request):
         user = self.request.user
         subscriptions = User.objects.filter(
@@ -186,10 +180,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    pagination_class = None
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
-    filter_backends = (SearchFilter,)
-    search_fields = ('^name',)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = IngredientFilter
+    pagination_class = None
