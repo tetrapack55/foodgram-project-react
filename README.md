@@ -1,4 +1,4 @@
-# Проект Kittygram
+# Проект Foodgram
 ___
 
 ### Проект доступен по адресу: https://cookbook.servebeer.com/
