@@ -188,7 +188,7 @@ GET /api/recipes/download_shopping_cart/
 
 ## Автор проекта
 Олег Кирьянов
-```
-https://github.com/tetrapack55
-xagatgx@yandex.ru
-```
+
+[github](https://github.com/tetrapack55)
+
+[e-mail](mailto:devilindespair55@gmail.com)
